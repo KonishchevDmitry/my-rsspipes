@@ -3,6 +3,8 @@ package main
 import (
     "github.com/KonishchevDmitry/rsspipes"
     "github.com/KonishchevDmitry/rsspipes/util"
+
+    _ "github.com/KonishchevDmitry/my-rsspipes/pipes"
 )
 
 var log = util.MustGetLogger("server")
