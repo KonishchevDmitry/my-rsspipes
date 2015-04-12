@@ -11,10 +11,10 @@ func init() {
     Register("/mobile-review.rss", mobileReviewFeed)
 }
 
-func mobileReviewFeed() (*Feed, error) {
-    feed, err := FetchUrl("http://www.mobile-review.com/podcasts/rss.xml")
+func mobileReviewFeed() (feed *Feed, err error) {
+    feed, err = FetchUrl("http://www.mobile-review.com/podcasts/rss.xml")
     if err != nil {
-        return nil, err
+        return
     }
 
     Filter(feed, func(item *Item) bool {
@@ -29,5 +29,7 @@ func mobileReviewFeed() (*Feed, error) {
         return true
     })
 
-    return feed, nil
+    Limit(feed, 10)
+
+    return
 }
