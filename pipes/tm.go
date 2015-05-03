@@ -16,8 +16,21 @@ func geektimesFeed() (*Feed, error) {
     return getTmFeed("Geektimes", "geektimes.ru", "/feed/" + tmUserId)
 }
 
-func habrahabrFeed() (*Feed, error) {
-    return getTmFeed("Хабрахабр", "habrahabr.ru", "/feed/posts/" + tmUserId)
+func habrahabrFeed() (feed *Feed, err error) {
+    feed, err = getTmFeed("Хабрахабр", "habrahabr.ru", "/feed/posts/" + tmUserId)
+    if err != nil {
+        return nil, err
+    }
+
+    Filter(feed, func (item *Item) bool {
+        if item.HasCategory("Блог компании PVS-Studio") {
+            return false
+        }
+
+        return true
+    })
+
+    return
 }
 
 func getTmFeed(name string, domain string, userFeedPath string) (feed *Feed, err error) {
