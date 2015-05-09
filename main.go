@@ -10,7 +10,7 @@ import (
 var log = util.MustGetLogger("server")
 
 func main() {
-    util.MustInitLogging(false, true)
+    util.MustInitLogging(false, false)
 
     err := rsspipes.Serve(":8003")
     if err != nil {
