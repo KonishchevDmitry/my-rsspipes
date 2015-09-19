@@ -3,6 +3,7 @@ package pipes
 import (
     "errors"
     "fmt"
+    "regexp"
     "strings"
 
     . "github.com/KonishchevDmitry/go-rss"
@@ -123,6 +124,13 @@ func getZhukovskyNewsArticleDescription(url string) (description string, err err
     if err != nil {
         return
     }
+
+    scriptRe, err := regexp.Compile(`(?is:<script(?:\s[^>]*)?>.*?</script\s*>)`)
+    if err != nil {
+        return
+    }
+
+    description = scriptRe.ReplaceAllString(description, "")
 
     return
 }
