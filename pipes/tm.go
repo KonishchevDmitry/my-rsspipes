@@ -22,9 +22,16 @@ func habrahabrFeed() (feed *Feed, err error) {
         return nil, err
     }
 
+    blogBlacklist := []string{
+        "Блог компании PVS-Studio",
+        "Блог компании Vivaldi Technologies AS",
+    }
+
     Filter(feed, func (item *Item) bool {
-        if item.HasCategory("Блог компании PVS-Studio") {
-            return false
+        for _, blogName := range(blogBlacklist) {
+            if item.HasCategory(blogName) {
+                return false
+            }
         }
 
         return true
