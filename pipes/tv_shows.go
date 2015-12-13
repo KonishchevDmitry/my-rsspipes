@@ -15,7 +15,7 @@ func init() {
 }
 
 func tvShowsFeed() (feed *Feed, err error) {
-    return getTvShowsFeed([]string{"Continuum", "The Walking Dead"})
+    return getTvShowsFeed([]string{"The Walking Dead"})
 }
 
 func kateTvShowsFeed() (feed *Feed, err error) {
