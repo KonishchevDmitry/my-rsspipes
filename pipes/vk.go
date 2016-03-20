@@ -25,6 +25,11 @@ func vkFeed() (feed *Feed, err error) {
 
         // Filter "Лучшие мысли всех времен" group
         if item.HasCategory("source/group/club27121021") {
+            // Reposts with advertisement
+            if item.HasCategory("type/repost") {
+                return false
+            }
+
             spamMarkers := []string{
                 "Статьи, расширяющие понимание мира:",
                 "Для тех, кто хочет изменить свою жизнь - ",
