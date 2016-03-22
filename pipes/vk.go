@@ -12,7 +12,7 @@ func init() {
 }
 
 func vkFeed() (feed *Feed, err error) {
-    feed, err = FetchUrl("http://konishchev.ru/social-rss/vk.rss")
+    feed, err = FetchUrl("http://konishchev.ru/social-rss/vk.rss?user_avatars=0")
     if err != nil {
         return
     }
@@ -25,22 +25,14 @@ func vkFeed() (feed *Feed, err error) {
 
         // Filter "Лучшие мысли всех времен" group
         if item.HasCategory("source/group/club27121021") {
-            // Reposts with advertisement
+            // All reposts are advertisement posts
             if item.HasCategory("type/repost") {
                 return false
             }
 
-            spamMarkers := []string{
-                "Статьи, расширяющие понимание мира:",
-                "Для тех, кто хочет изменить свою жизнь - ",
-                "Для тех, кто хочет системно работать над собой - ",
-                "Для тех, кто хочет начать системно работать над собой – ",
-            }
-
-            for _, marker := range(spamMarkers) {
-                if strings.Contains(item.Description, marker) {
-                    return false
-                }
+            // Regular posts don't contain any links. All posts with links are advertisement posts.
+            if strings.Contains(item.Description, "<a") {
+                return false
             }
         }
 
