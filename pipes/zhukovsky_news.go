@@ -106,6 +106,15 @@ func getZhukovskyNewsArticleDescription(url string) (description string, err err
     article.Find("div#ilikeit").Remove()
     article.Find("div#comments-block").Remove()
 
+    disabledCommentsStub := article.Find("hr").First()
+    disabledCommentsStub = disabledCommentsStub.AddSelection(disabledCommentsStub.NextAll())
+    disabledCommentsPrefix := "В связи с увеличившимся количеством комментариев, " +
+                              "подпадающих под антиэкстремисткое законодательство"
+
+    if strings.HasPrefix(disabledCommentsStub.Text(), disabledCommentsPrefix) {
+        disabledCommentsStub.Remove()
+    }
+
     article.Find("a").Each(func(i int, link *goquery.Selection) {
         url, exists := link.Attr("href")
         if exists {
