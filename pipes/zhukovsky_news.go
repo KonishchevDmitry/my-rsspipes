@@ -106,8 +106,11 @@ func getZhukovskyNewsArticleDescription(url string) (description string, err err
     article.Find("div#ilikeit").Remove()
     article.Find("div#comments-block").Remove()
 
-    disabledCommentsStub := article.Find("hr").First()
-    disabledCommentsStub = disabledCommentsStub.AddSelection(disabledCommentsStub.NextAll())
+    disabledCommentsStubSeparator := article.Find("hr").First()
+    disabledCommentsStub :=
+        disabledCommentsStubSeparator.PrevAllFiltered("br").
+        AddSelection(disabledCommentsStubSeparator).
+        AddSelection(disabledCommentsStubSeparator.NextAll())
     disabledCommentsPrefix := "В связи с увеличившимся количеством комментариев, " +
                               "подпадающих под антиэкстремисткое законодательство"
 

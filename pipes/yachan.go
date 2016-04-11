@@ -31,13 +31,6 @@ func yachanFeed() (feed *Feed, err error) {
             item.Link = baseUrl + item.Link
         }
 
-        if item.Guid.Id == "" {
-            item.Guid.Id = item.Link
-
-            isPermaLink := true
-            item.Guid.IsPermaLink = &isPermaLink
-        }
-
         if doc, err := html.Parse(bytes.NewReader([]byte(item.Description))); err == nil {
             doc := goquery.NewDocumentFromNode(doc)
 
