@@ -12,7 +12,7 @@ var log = util.MustGetLogger("server")
 func main() {
     util.MustInitLogging(false, false)
 
-    err := rsspipes.Serve(":8003")
+    err := rsspipes.Serve("localhost:8003")
     if err != nil {
         log.Fatal(err)
     }
