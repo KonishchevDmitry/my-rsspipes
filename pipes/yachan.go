@@ -2,6 +2,7 @@ package pipes
 
 import (
     "bytes"
+    "runtime"
     "strings"
 
     "github.com/PuerkitoBio/goquery"
@@ -12,7 +13,9 @@ import (
 )
 
 func init() {
-    Register("/yachan.rss", yachanFeed)
+    if runtime.GOOS == "darwin" {
+        Register("/yachan.rss", yachanFeed)
+    }
 }
 
 func yachanFeed() (feed *Feed, err error) {
@@ -25,6 +28,8 @@ func yachanFeed() (feed *Feed, err error) {
     if err != nil {
         return
     }
+
+    feed.Title = "YaChan"
 
     for _, item := range feed.Items {
         if strings.HasPrefix(item.Link, "/") {
