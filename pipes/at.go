@@ -76,18 +76,36 @@ func bbsFeed() (feed *Feed, err error) {
 
 func getYandexTeamCookies() ([]*http.Cookie, error) {
     var data []byte
+    commonErr := errors.New("Unable to obtain intranet cookies.")
 
     user, err := user.Current()
-    if err == nil {
-        data, err = ioutil.ReadFile(path.Join(user.HomeDir, "Yandex", "session-id"))
-    }
-
     if err != nil {
-        return nil, errors.New("Unable to obtain session ID.")
+        return nil, commonErr
     }
 
-    return []*http.Cookie{&http.Cookie{
-        Name: "Session_id",
-        Value: strings.TrimSpace(string(data)),
-    }}, nil
+    data, err = ioutil.ReadFile(path.Join(user.HomeDir, "Yandex", "intranet-cookies"))
+    if err != nil {
+        return nil, commonErr
+    }
+
+    cookies := []*http.Cookie{}
+
+    for _, line := range strings.Split(string(data), "\n") {
+        line = strings.TrimSpace(line)
+        if len(line) == 0 {
+            continue
+        }
+
+        cookie := strings.SplitN(line, "=", 2)
+        if len(cookie) != 2 {
+            return nil, commonErr
+        }
+
+        cookies = append(cookies, &http.Cookie{
+            Name: cookie[0],
+            Value: cookie[1],
+        })
+    }
+
+    return cookies, nil
 }
