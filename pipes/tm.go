@@ -1,6 +1,8 @@
 package pipes
 
 import (
+    "strings"
+
     . "github.com/KonishchevDmitry/go-rss"
     . "github.com/KonishchevDmitry/rsspipes"
 )
@@ -50,17 +52,34 @@ func getTmFeed(name string, domain string, userFeedPath string) (feed *Feed, err
         futureFeeds[id] = FutureFetch(FetchUrl, rssLink + feedPath + "/")
     }
 
-    feeds, err := GetFutures(futureFeeds...)
+    subFeeds, err := GetFutures(futureFeeds...)
     if err != nil {
         return
+    }
+
+    // URL may contain query parameters which are different in each subfeed:
+    // https://habrahabr.ru/post/279703/?utm_source=habrahabr&utm_medium=rss&utm_campaign=interesting
+    //
+    // Strip them in GUID to make union work right.
+    for _, subFeed := range subFeeds {
+        for _, item := range subFeed.Items {
+            if item.Guid.IsPermaLink == nil || !*item.Guid.IsPermaLink {
+                continue
+            }
+
+            query_params_index := strings.Index(item.Guid.Id, "?")
+            if query_params_index != -1 {
+                item.Guid.Id = item.Guid.Id[:query_params_index]
+            }
+        }
     }
 
     feed = &Feed{
         Title: name,
         Link: link,
-        Image: feeds[0].Image,
+        Image: subFeeds[0].Image,
     }
 
-    Union(feed, feeds...)
+    Union(feed, subFeeds...)
     return
 }
