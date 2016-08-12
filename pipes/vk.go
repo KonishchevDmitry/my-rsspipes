@@ -56,6 +56,10 @@ func vkFeed() (feed *Feed, err error) {
         } else if item.HasCategory("source/group/club55155418") {
             // Filter "Vert Dider" group
 
+            if item.HasCategory("type/repost") && strings.Contains(item.Description, "#ЛекторийSetUp") {
+                return false
+            }
+
             for _, substring := range []string{
                 "Расписание лектория",
                 "Регистрация:",
