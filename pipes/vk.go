@@ -130,7 +130,7 @@ func checkQuote(db *sql.DB, text string) bool {
 
     rows, err := db.Query("SELECT time FROM quotes WHERE id == ?", fingerprint)
     if err != nil {
-        log.Error("Failed to query a quote from database: %s.", err)
+        log.Errorf("Failed to query a quote from database: %s.", err)
         return true
     }
     defer rows.Close()
@@ -140,7 +140,7 @@ func checkQuote(db *sql.DB, text string) bool {
 
         err = rows.Scan(&quoteFirstSeenTime)
         if err != nil {
-            log.Error("Failed to fetch a quote info from database: %s.", err)
+            log.Errorf("Failed to fetch a quote info from database: %s.", err)
             return true
         }
 
@@ -148,7 +148,7 @@ func checkQuote(db *sql.DB, text string) bool {
 
         return quoteAgeDays < 3
     } else if err = rows.Err(); err != nil {
-        log.Error("Failed to fetch a quote info from database: %s.", err)
+        log.Errorf("Failed to fetch a quote info from database: %s.", err)
         return true
     }
 
@@ -157,7 +157,7 @@ func checkQuote(db *sql.DB, text string) bool {
         if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
             // It's OK - we've just got a race
         } else {
-            log.Error("Failed to store a quote info to database: %s.", err)
+            log.Errorf("Failed to store a quote info to database: %s.", err)
         }
     }
 
