@@ -1,39 +1,39 @@
 package pipes
 
 import (
-    "fmt"
+	"fmt"
 
-    . "github.com/KonishchevDmitry/go-rss"
-    . "github.com/KonishchevDmitry/rsspipes"
+	. "github.com/KonishchevDmitry/go-rss"
+	. "github.com/KonishchevDmitry/rsspipes"
 )
 
 func init() {
-    Register("/newsru.rss", newsruFeed)
+	Register("/newsru.rss", newsruFeed)
 }
 
 func newsruFeed() (feed *Feed, err error) {
-    feed, err = FetchUrlWithParams("http://rss.newsru.com/top/big/", GetParams{
-        SkipContentTypeCheck: true,
-    })
-    if err != nil {
-        return
-    }
+	feed, err = FetchUrlWithParams("http://rss.newsru.com/top/big/", GetParams{
+		SkipContentTypeCheck: true,
+	})
+	if err != nil {
+		return
+	}
 
-    Filter(feed, func(item *Item) bool {
-        if len(item.Category) == 0 {
-            return true
-        }
+	Filter(feed, func(item *Item) bool {
+		if len(item.Category) == 0 {
+			return true
+		}
 
-        category := item.Category[0]
+		category := item.Category[0]
 
-        switch category {
-        case "Спорт":
-            return false
-        }
+		switch category {
+		case "Спорт":
+			return false
+		}
 
-        item.Title = fmt.Sprintf("[%s] %s", category, item.Title)
-        return true
-    })
+		item.Title = fmt.Sprintf("[%s] %s", category, item.Title)
+		return true
+	})
 
-    return
+	return
 }

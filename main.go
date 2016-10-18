@@ -1,19 +1,25 @@
 package main
 
 import (
-    "github.com/KonishchevDmitry/rsspipes"
-    "github.com/KonishchevDmitry/rsspipes/util"
+	"flag"
 
-    _ "github.com/KonishchevDmitry/my-rsspipes/pipes"
+	"github.com/KonishchevDmitry/rsspipes"
+	"github.com/KonishchevDmitry/rsspipes/util"
+
+	"fmt"
+	_ "github.com/KonishchevDmitry/my-rsspipes/pipes"
 )
 
 var log = util.MustGetLogger("server")
 
 func main() {
-    util.MustInitLogging(false, false)
+	util.MustInitLogging(false, false)
 
-    err := rsspipes.Serve("localhost:8003")
-    if err != nil {
-        log.Fatal(err)
-    }
+	portArg := flag.Int("port", 8003, "bind port")
+	flag.Parse()
+
+	err := rsspipes.Serve(fmt.Sprintf("localhost:%d", *portArg))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
