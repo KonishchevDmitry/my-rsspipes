@@ -1,10 +1,11 @@
 package pipes
 
 import (
-	"strings"
-
+	"fmt"
 	. "github.com/KonishchevDmitry/go-rss"
 	. "github.com/KonishchevDmitry/rsspipes"
+	"golang.org/x/net/html"
+	"strings"
 )
 
 var tmUserId = "53f3e807c946dfd8936807a3c3c764c9"
@@ -15,11 +16,11 @@ func init() {
 }
 
 func geektimesFeed() (*Feed, error) {
-	return getTmFeed("Geektimes", "geektimes.ru", "/feed/"+tmUserId)
+	return getTmFeed("Geektimes", "geektimes.ru", "feed/"+tmUserId)
 }
 
 func habrahabrFeed() (feed *Feed, err error) {
-	feed, err = getTmFeed("Хабрахабр", "habrahabr.ru", "/feed/posts/"+tmUserId)
+	feed, err = getTmFeed("Хабрахабр", "habrahabr.ru", "feed/posts/"+tmUserId)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +44,31 @@ func habrahabrFeed() (feed *Feed, err error) {
 }
 
 func getTmFeed(name string, domain string, userFeedPath string) (feed *Feed, err error) {
-	link := "http://" + domain + "/"
+	link := "https://" + domain + "/"
 	rssLink := link + "rss/"
-	feedPaths := []string{userFeedPath, "best", "best/weekly", "best/monthly"}
 
-	futureFeeds := make([]FutureFeed, len(feedPaths))
-	for id, feedPath := range feedPaths {
-		futureFeeds[id] = FutureFetch(FetchUrl, rssLink+feedPath+"/")
+	type tmFeed struct {
+		Url  string
+		Name string
+	}
+
+	makeTmFeed := func(path string, name string) tmFeed {
+		return tmFeed{rssLink + path + "/", name}
+	}
+
+	tmFeeds := []tmFeed{
+		makeTmFeed(userFeedPath, "my"),
+		makeTmFeed("best", ""),
+		makeTmFeed("best/weekly", "weekly"),
+		makeTmFeed("best/monthly", "monthly"),
+	}
+
+	futureFeeds := make([]FutureFeed, 0, len(tmFeeds))
+	for feedId, _ := range tmFeeds {
+		tmFeed := &tmFeeds[feedId]
+		futureFeeds = append(futureFeeds, FutureFetch(func(url string) (feed *Feed, err error) {
+			return fetchNamedFeed(url, tmFeed.Name)
+		}, tmFeed.Url))
 	}
 
 	subFeeds, err := GetFutures(futureFeeds...)
@@ -81,5 +100,28 @@ func getTmFeed(name string, domain string, userFeedPath string) (feed *Feed, err
 	}
 
 	Union(feed, subFeeds...)
+
+	for _, item := range feed.Items {
+		if len(item.Category) != 0 {
+			item.Description += fmt.Sprintf("<p>%s</p>", html.EscapeString(strings.Join(item.Category, " | ")))
+		}
+	}
+
+	return
+}
+
+func fetchNamedFeed(url string, name string) (feed *Feed, err error) {
+	feed, err = FetchUrl(url)
+	if err != nil {
+		return
+	}
+
+	if name != "" {
+		titlePrefix := fmt.Sprintf("[%s] ", name)
+		for _, item := range feed.Items {
+			item.Title = titlePrefix + item.Title
+		}
+	}
+
 	return
 }
