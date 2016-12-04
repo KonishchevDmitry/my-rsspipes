@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,7 +23,7 @@ func init() {
 }
 
 func vkFeed() (feed *Feed, err error) {
-	db, err := openQuotesDb()
+	db, err := openSeenDb()
 	if err != nil {
 		return
 	}
@@ -52,26 +53,60 @@ func vkFeed() (feed *Feed, err error) {
 				return false
 			}
 
-			return checkQuote(db, item.Description)
+			allow, err := checkQuote(db, item.Description)
+			if err != nil {
+				log.Errorf("Failed to check a quote against seen quotes database: %s.", err)
+			}
+
+			return allow
 		} else if item.HasCategory("source/group/club55155418") {
 			// Filter "Vert Dider" group
 
-			if item.HasCategory("type/repost") && strings.Contains(item.Description, "#ЛекторийSetUp") {
-				return false
-			}
+			const videoAttachmentPrefix = "attachment/video/"
 
-			for _, substring := range []string{
-				"Расписание лектория",
-				"Регистрация:",
-				"Регистрация и билеты:",
-				"Регистрация по ссылке:",
-				"Зарегистрироваться на событие:",
-				"Регистрация на мероприятие:",
-			} {
-				if strings.Contains(item.Description, substring) {
-					return false
+			for _, category := range item.Category {
+				if strings.HasPrefix(category, videoAttachmentPrefix) {
+					videoId, err := strconv.ParseInt(category[len(videoAttachmentPrefix):], 10, 64)
+					if err != nil {
+						log.Errorf("Got an invalid category: %q.", category)
+						return true
+					}
+
+					allow, err := checkVertDiderVideo(db, videoId)
+					if err != nil {
+						log.Errorf("Failed to check a video against seen videos database: %s.", err)
+					}
+
+					if allow {
+						return true
+					}
 				}
 			}
+
+			// FIXME: For now just mark not interested items for debug purposes
+			item.Title = "[spam] " + item.Title
+
+			return true
+
+			// FIXME
+			/*
+				if item.HasCategory("type/repost") && strings.Contains(item.Description, "#ЛекторийSetUp") {
+					return false
+				}
+
+				for _, substring := range []string{
+					"Расписание лектория",
+					"Регистрация:",
+					"Регистрация и билеты:",
+					"Регистрация по ссылке:",
+					"Зарегистрироваться на событие:",
+					"Регистрация на мероприятие:",
+				} {
+					if strings.Contains(item.Description, substring) {
+						return false
+					}
+				}
+			*/
 		}
 
 		return true
@@ -80,7 +115,7 @@ func vkFeed() (feed *Feed, err error) {
 	return
 }
 
-func openQuotesDb() (db *sql.DB, err error) {
+func openSeenDb() (db *sql.DB, err error) {
 	user, err := user.Current()
 	if err != nil {
 		return
@@ -88,7 +123,7 @@ func openQuotesDb() (db *sql.DB, err error) {
 
 	db, err = sql.Open("sqlite3", path.Join(user.HomeDir, ".rsspipes.sqlite"))
 	if err != nil {
-		err = fmt.Errorf("Failed to open database: %s.", err)
+		err = fmt.Errorf("Failed to open seen items database: %s.", err)
 		return
 	}
 
@@ -98,7 +133,7 @@ func openQuotesDb() (db *sql.DB, err error) {
 		}
 	}()
 
-	_, err = db.Exec(`
+	err = createTable(db, `
         CREATE TABLE IF NOT EXISTS quotes (
             id TEXT NOT NULL PRIMARY KEY,
             time TIMESTAMP NOT NULL,
@@ -106,17 +141,34 @@ func openQuotesDb() (db *sql.DB, err error) {
         )
     `)
 	if err != nil {
-		err = fmt.Errorf("Failed to create a table: %s.", err)
+		return
+	}
+
+	err = createTable(db, `
+        CREATE TABLE IF NOT EXISTS vert_dider_videos (
+            id INTEGER NOT NULL PRIMARY KEY,
+            time TIMESTAMP NOT NULL
+        )
+    `)
+	if err != nil {
 		return
 	}
 
 	return
 }
 
-var fingerprintExtraCharsRe = regexp.MustCompile(`(\s+|<br>|[–().,:;!?'"-]+)`)
+func createTable(db *sql.DB, query string) error {
+	if _, err := db.Exec(query); err != nil {
+		return fmt.Errorf("Failed to create a table: %s.", err)
+	} else {
+		return nil
+	}
+}
+
+var quoteFingerprintExtraCharsRe = regexp.MustCompile(`(\s+|<br>|[–().,:;!?'"-]+)`)
 
 func getQuoteFingerprint(text string) string {
-	fingerprint := fingerprintExtraCharsRe.ReplaceAllString(text, "")
+	fingerprint := quoteFingerprintExtraCharsRe.ReplaceAllString(text, "")
 	fingerprint = strings.Replace(fingerprint, "ё", "e", -1)
 	fingerprint = strings.ToLower(fingerprint)
 
@@ -125,42 +177,63 @@ func getQuoteFingerprint(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func checkQuote(db *sql.DB, text string) bool {
-	curTime := time.Now()
+func checkQuote(db *sql.DB, text string) (bool, error) {
 	fingerprint := getQuoteFingerprint(text)
 
 	rows, err := db.Query("SELECT time FROM quotes WHERE id == ?", fingerprint)
 	if err != nil {
-		log.Errorf("Failed to query a quote from database: %s.", err)
-		return true
+		return true, err
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		var quoteFirstSeenTime time.Time
-
-		err = rows.Scan(&quoteFirstSeenTime)
-		if err != nil {
-			log.Errorf("Failed to fetch a quote info from database: %s.", err)
-			return true
-		}
-
-		quoteAgeDays := curTime.Sub(quoteFirstSeenTime).Hours() / 24
-
-		return quoteAgeDays < 3
-	} else if err = rows.Err(); err != nil {
-		log.Errorf("Failed to fetch a quote info from database: %s.", err)
-		return true
+		return checkSeenItem(rows)
+	} else if err := rows.Err(); err != nil {
+		return true, err
 	}
 
-	_, err = db.Exec(`INSERT INTO quotes (id, time, text) VALUES (?, ?, ?)`, fingerprint, curTime, text)
-	if err != nil {
+	if _, err := db.Exec(`INSERT INTO quotes (id, time, text) VALUES (?, ?, ?)`, fingerprint, time.Now(), text); err != nil {
 		if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
 			// It's OK - we've just got a race
 		} else {
-			log.Errorf("Failed to store a quote info to database: %s.", err)
+			return true, err
 		}
 	}
 
-	return true
+	return true, nil
+}
+
+func checkVertDiderVideo(db *sql.DB, videoId int64) (bool, error) {
+	rows, err := db.Query("SELECT time FROM vert_dider_videos WHERE id == ?", videoId)
+	if err != nil {
+		return true, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		return checkSeenItem(rows)
+	} else if err := rows.Err(); err != nil {
+		return true, err
+	}
+
+	if _, err := db.Exec(`INSERT INTO vert_dider_videos (id, time) VALUES (?, ?)`, videoId, time.Now()); err != nil {
+		if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
+			// It's OK - we've just got a race
+		} else {
+			return true, err
+		}
+	}
+
+	return true, nil
+}
+
+func checkSeenItem(rows *sql.Rows) (bool, error) {
+	var firstSeenTime time.Time
+	if err := rows.Scan(&firstSeenTime); err != nil {
+		return true, err
+	}
+
+	itemAgeDays := time.Now().Sub(firstSeenTime).Hours() / 24
+
+	return itemAgeDays < 3, nil
 }
