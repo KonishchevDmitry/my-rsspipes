@@ -17,11 +17,11 @@ func mobileReviewFeed() (feed *Feed, err error) {
 		return
 	}
 
-	Filter(feed, func(item *Item) bool {
-		skipRubrics := []string{"Кухня сайта", "Обзоры новинок", "Штучки"}
+	skipRubrics := map[string]bool{"Кухня сайта": true, "Обзоры новинок": true, "Штучки": true}
 
-		for _, rubric := range skipRubrics {
-			if strings.HasPrefix(item.Title, rubric+". ") {
+	Filter(feed, func(item *Item) bool {
+		for _, sentence := range strings.Split(item.Title, ".") {
+			if skipRubrics[strings.TrimSpace(sentence)] {
 				return false
 			}
 		}
