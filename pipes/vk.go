@@ -19,24 +19,25 @@ import (
 )
 
 func init() {
-	Register("/vk.rss", vkFeed)
+	Register("/vk.rss", vkNewsFeed)
+	Register("/vert-dider.rss", vertDiderFeed)
 }
 
-func vkFeed() (feed *Feed, err error) {
+func vkNewsFeed() (feed *Feed, err error) {
+	feed, err = vkFeed()
+	if err != nil {
+		return
+	}
+
 	db, err := openSeenDb()
 	if err != nil {
 		return
 	}
 	defer db.Close()
 
-	feed, err = FetchUrl("http://konishchev.ru/social-rss/vk.rss?user_avatars=0")
-	if err != nil {
-		return
-	}
-
 	Filter(feed, func(item *Item) bool {
-		// Filter out "New friend" items
-		if item.HasCategory("type/friend") {
+		// Filter out "Vert Dider" group (it has it's own RSS)
+		if item.HasCategory("source/group/club55155418") {
 			return false
 		}
 
@@ -59,54 +60,101 @@ func vkFeed() (feed *Feed, err error) {
 			}
 
 			return allow
-		} else if item.HasCategory("source/group/club55155418") {
-			// Filter "Vert Dider" group
+		}
 
-			const videoAttachmentPrefix = "attachment/video/"
+		return true
+	})
 
-			for _, category := range item.Category {
-				if strings.HasPrefix(category, videoAttachmentPrefix) {
-					videoId, err := strconv.ParseInt(category[len(videoAttachmentPrefix):], 10, 64)
-					if err != nil {
-						log.Errorf("Got an invalid category: %q.", category)
-						return true
-					}
+	return
+}
 
-					allow, err := checkVertDiderVideo(db, videoId)
-					if err != nil {
-						log.Errorf("Failed to check a video against seen videos database: %s.", err)
-					}
+func vertDiderFeed() (feed *Feed, err error) {
+	feed, err = vkFeed()
+	if err != nil {
+		return
+	}
 
-					if allow {
-						return true
-					}
-				}
+	db, err := openSeenDb()
+	if err != nil {
+		return
+	}
+	defer db.Close()
+
+	Filter(feed, func(item *Item) bool {
+		// Filter "Vert Dider" group
+		if !item.HasCategory("source/group/club55155418") {
+			return false
+		}
+
+		var postWithSeenVideos bool
+		const videoAttachmentPrefix = "attachment/video/"
+
+		for _, category := range item.Category {
+			if !strings.HasPrefix(category, videoAttachmentPrefix) {
+				continue
 			}
 
+			videoId, err := strconv.ParseInt(category[len(videoAttachmentPrefix):], 10, 64)
+			if err != nil {
+				log.Errorf("Got an invalid category: %q.", category)
+				return true
+			}
+
+			allow, err := checkVertDiderVideo(db, videoId)
+			if err != nil {
+				log.Errorf("Failed to check a video against seen videos database: %s.", err)
+			}
+
+			if allow {
+				return true
+			} else {
+				postWithSeenVideos = true
+			}
+		}
+
+		// FIXME: For now just mark seen items for debug purposes
+		if postWithSeenVideos {
+			item.Title = "[seen] " + item.Title
+			return true
+		}
+
+		if item.HasCategory("type/repost") && strings.Contains(item.Description, "#ЛекторийSetUp") {
 			// FIXME: For now just mark not interested items for debug purposes
 			item.Title = "[spam] " + item.Title
-
 			return true
+		}
 
-			// FIXME
-			/*
-				if item.HasCategory("type/repost") && strings.Contains(item.Description, "#ЛекторийSetUp") {
-					return false
-				}
+		for _, substring := range []string{
+			"Расписание лектория",
+			"Регистрация:",
+			"Регистрация и билеты:",
+			"Регистрация по ссылке:",
+			"Зарегистрироваться на событие:",
+			"Регистрация на мероприятие:",
+		} {
+			if strings.Contains(item.Description, substring) {
+				// FIXME: For now just mark not interested items for debug purposes
+				item.Title = "[spam] " + item.Title
+				return true
+			}
+		}
 
-				for _, substring := range []string{
-					"Расписание лектория",
-					"Регистрация:",
-					"Регистрация и билеты:",
-					"Регистрация по ссылке:",
-					"Зарегистрироваться на событие:",
-					"Регистрация на мероприятие:",
-				} {
-					if strings.Contains(item.Description, substring) {
-						return false
-					}
-				}
-			*/
+		return true
+	})
+
+	return
+}
+
+func vkFeed() (feed *Feed, err error) {
+	feed, err = FetchUrl("http://konishchev.ru/social-rss/vk.rss?user_avatars=0")
+	if err != nil {
+		return
+	}
+
+	Filter(feed, func(item *Item) bool {
+		// Filter out "New friend" items
+		if item.HasCategory("type/friend") {
+			return false
 		}
 
 		return true
