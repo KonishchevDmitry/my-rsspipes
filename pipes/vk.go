@@ -80,6 +80,8 @@ func vertDiderFeed() (feed *Feed, err error) {
 	}
 	defer db.Close()
 
+	feed.Title = "Vert Dider"
+
 	Filter(feed, func(item *Item) bool {
 		// Filter "Vert Dider" group
 		if !item.HasCategory("source/group/club55155418") {
