@@ -88,7 +88,6 @@ func vertDiderFeed() (feed *Feed, err error) {
 			return false
 		}
 
-		var postWithSeenVideos bool
 		const videoAttachmentPrefix = "attachment/video/"
 
 		for _, category := range item.Category {
@@ -109,39 +108,10 @@ func vertDiderFeed() (feed *Feed, err error) {
 
 			if allow {
 				return true
-			} else {
-				postWithSeenVideos = true
 			}
 		}
 
-		// FIXME: For now just mark seen items for debug purposes
-		if postWithSeenVideos {
-			item.Title = "[seen] " + item.Title
-			return true
-		}
-
-		if item.HasCategory("type/repost") && strings.Contains(item.Description, "#ЛекторийSetUp") {
-			// FIXME: For now just mark not interested items for debug purposes
-			item.Title = "[spam] " + item.Title
-			return true
-		}
-
-		for _, substring := range []string{
-			"Расписание лектория",
-			"Регистрация:",
-			"Регистрация и билеты:",
-			"Регистрация по ссылке:",
-			"Зарегистрироваться на событие:",
-			"Регистрация на мероприятие:",
-		} {
-			if strings.Contains(item.Description, substring) {
-				// FIXME: For now just mark not interested items for debug purposes
-				item.Title = "[spam] " + item.Title
-				return true
-			}
-		}
-
-		return true
+		return false
 	})
 
 	return
