@@ -54,7 +54,7 @@ func vkNewsFeed() (feed *Feed, err error) {
 				return false
 			}
 
-			allow, err := checkQuote(db, item.Description)
+			allow, err := checkAndRememberQuote(db, item.Description)
 			if err != nil {
 				log.Errorf("Failed to check a quote against seen quotes database: %s.", err)
 			}
@@ -88,6 +88,7 @@ func vertDiderFeed() (feed *Feed, err error) {
 			return false
 		}
 
+		var allowPost bool
 		const videoAttachmentPrefix = "attachment/video/"
 
 		for _, category := range item.Category {
@@ -98,20 +99,19 @@ func vertDiderFeed() (feed *Feed, err error) {
 			videoId, err := strconv.ParseInt(category[len(videoAttachmentPrefix):], 10, 64)
 			if err != nil {
 				log.Errorf("Got an invalid category: %q.", category)
-				return true
+				allowPost = true
+				continue
 			}
 
-			allow, err := checkVertDiderVideo(db, videoId)
+			allowVideo, err := checkAndRememberVertDiderVideo(db, videoId)
 			if err != nil {
 				log.Errorf("Failed to check a video against seen videos database: %s.", err)
 			}
 
-			if allow {
-				return true
-			}
+			allowPost = allowPost || allowVideo
 		}
 
-		return false
+		return allowPost
 	})
 
 	return
@@ -197,7 +197,7 @@ func getQuoteFingerprint(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func checkQuote(db *sql.DB, text string) (bool, error) {
+func checkAndRememberQuote(db *sql.DB, text string) (bool, error) {
 	fingerprint := getQuoteFingerprint(text)
 
 	rows, err := db.Query("SELECT time FROM quotes WHERE id == ?", fingerprint)
@@ -223,7 +223,7 @@ func checkQuote(db *sql.DB, text string) (bool, error) {
 	return true, nil
 }
 
-func checkVertDiderVideo(db *sql.DB, videoId int64) (bool, error) {
+func checkAndRememberVertDiderVideo(db *sql.DB, videoId int64) (bool, error) {
 	rows, err := db.Query("SELECT time FROM vert_dider_videos WHERE id == ?", videoId)
 	if err != nil {
 		return true, err
