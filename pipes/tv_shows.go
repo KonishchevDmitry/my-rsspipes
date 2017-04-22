@@ -32,7 +32,7 @@ func kateTvShowsFeed() (feed *Feed, err error) {
 }
 
 func getTvShowsFeed(tvShows []string) (feed *Feed, err error) {
-	feed, err = FetchUrl("http://lostfilm.tv/rssdd.xml")
+	feed, err = FetchUrl("http://old.lostfilm.tv/rssdd.xml")
 	if err != nil {
 		return
 	}
