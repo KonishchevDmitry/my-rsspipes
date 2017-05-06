@@ -1,0 +1,6 @@
+[submodule "vendor/github.com/KonishchevDmitry/rsspipes"]
+	path = vendor/github.com/KonishchevDmitry/rsspipes
+	url = git@github.com:KonishchevDmitry/rsspipes.git
+[submodule "vendor/github.com/KonishchevDmitry/go-rss"]
+	path = vendor/github.com/KonishchevDmitry/go-rss
+	url = git@github.com:KonishchevDmitry/go-rss.git
