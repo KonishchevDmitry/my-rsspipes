@@ -15,7 +15,7 @@ func init() {
 }
 
 func mikrotikReleasesFeed() (feed *Feed, err error) {
-	const url = "https://mikrotik.com/download/invalid-test/changelogs"
+	const url = "https://mikrotik.com/download/changelogs"
 
 	doc, err := FetchHtml(url)
 	if err != nil {
