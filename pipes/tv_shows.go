@@ -2,6 +2,9 @@ package pipes
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os/user"
+	"path"
 	"regexp"
 	"strings"
 
@@ -72,12 +75,17 @@ func getTvShowsFeed(tvShows []string) (feed *Feed, err error) {
 }
 
 func getKateTvShows() (tvShows []string, err error) {
-	_, data, err := FetchData("https://www.dropbox.com/s/6danram2fmm3c9u/tv-shows.txt?dl=1", []string{"text/plain"})
+	currentUser, err := user.Current()
 	if err != nil {
 		return
 	}
 
-	for _, line := range strings.Split(data, "\n") {
+	data, err := ioutil.ReadFile(path.Join(currentUser.HomeDir, "Cloud/Kate/Torrents/tv-shows.txt"))
+	if err != nil {
+		return nil, fmt.Errorf("Unable to load a list of Kate's TV shows: %s", err)
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
 		tvShow := stripSpaces(line)
 		if tvShow != "" {
 			tvShows = append(tvShows, tvShow)
