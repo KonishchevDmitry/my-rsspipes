@@ -3,7 +3,6 @@ package pipes
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	. "github.com/KonishchevDmitry/go-rss"
@@ -43,13 +42,16 @@ func getZhukovskyNewsUrl(url string) string {
 func getZhukovskyNewsArticles(doc *goquery.Document) (items []*Item, err error) {
 	doc.Find("div.news-list div.article").EachWithBreak(func(i int, article *goquery.Selection) bool {
 		var item *Item
+		var spam bool
 
-		item, err = getZhukovskyNewsArticle(article)
+		item, spam, err = getZhukovskyNewsArticle(article)
 		if err != nil {
 			return false
 		}
 
-		items = append(items, item)
+		if !spam {
+			items = append(items, item)
+		}
 
 		return true
 	})
@@ -57,7 +59,7 @@ func getZhukovskyNewsArticles(doc *goquery.Document) (items []*Item, err error) 
 	return
 }
 
-func getZhukovskyNewsArticle(article *goquery.Selection) (item *Item, err error) {
+func getZhukovskyNewsArticle(article *goquery.Selection) (item *Item, spam bool, err error) {
 	title := article.Find("div.newscontent h2").First()
 
 	url, _ := title.Find("a").First().Attr("href")
@@ -67,7 +69,7 @@ func getZhukovskyNewsArticle(article *goquery.Selection) (item *Item, err error)
 	}
 	url = getZhukovskyNewsUrl(url)
 
-	description, err := getZhukovskyNewsArticleDescription(url)
+	description, spam, err := getZhukovskyNewsArticleDescription(url)
 	if err != nil {
 		return
 	}
@@ -81,7 +83,7 @@ func getZhukovskyNewsArticle(article *goquery.Selection) (item *Item, err error)
 	return
 }
 
-func getZhukovskyNewsArticleDescription(url string) (description string, err error) {
+func getZhukovskyNewsArticleDescription(url string) (description string, spam bool, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("Failed to fetch article from %s: %s", url, err)
@@ -118,6 +120,8 @@ func getZhukovskyNewsArticleDescription(url string) (description string, err err
 		disabledCommentsStub.Remove()
 	}
 
+	article.Find("script").Remove()
+
 	article.Find("a").Each(func(i int, link *goquery.Selection) {
 		url, exists := link.Attr("href")
 		if exists {
@@ -132,17 +136,14 @@ func getZhukovskyNewsArticleDescription(url string) (description string, err err
 		}
 	})
 
+	spam = article.Find("div, p").FilterFunction(func(i int, block *goquery.Selection) bool {
+		return strings.TrimSpace(block.Text()) == "На правах рекламы"
+	}).Size() != 0
+
 	description, err = article.Html()
 	if err != nil {
 		return
 	}
-
-	scriptRe, err := regexp.Compile(`(?is:<script(?:\s[^>]*)?>.*?</script\s*>)`)
-	if err != nil {
-		return
-	}
-
-	description = scriptRe.ReplaceAllString(description, "")
 
 	return
 }
