@@ -29,7 +29,7 @@ func mobileReviewFeed() (feed *Feed, err error) {
 		return true
 	})
 
-	Limit(feed, 10)
+	Limit(feed, 20)
 
 	return
 }
