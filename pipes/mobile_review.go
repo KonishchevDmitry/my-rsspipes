@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	Register("/mobile-review.rss", mobileReviewFeed)
+	Register("/mobile-review-podcasts.rss", mobileReviewFeed)
 }
 
 func mobileReviewFeed() (feed *Feed, err error) {
