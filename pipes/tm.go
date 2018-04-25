@@ -16,11 +16,11 @@ func init() {
 }
 
 func geektimesFeed() (*Feed, error) {
-	return getTmFeed("Geektimes", "geektimes.ru", "feed/"+tmUserId)
+	return getTmFeed("Geektimes", "geektimes.com", "feed/"+tmUserId)
 }
 
 func habrahabrFeed() (feed *Feed, err error) {
-	feed, err = getTmFeed("Хабрахабр", "habrahabr.ru", "feed/posts/"+tmUserId)
+	feed, err = getTmFeed("Хабрахабр", "habr.com", "feed/posts/"+tmUserId)
 	if err != nil {
 		return nil, err
 	}
