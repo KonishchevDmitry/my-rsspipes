@@ -11,16 +11,11 @@ import (
 var tmUserId = "53f3e807c946dfd8936807a3c3c764c9"
 
 func init() {
-	Register("/geektimes.rss", geektimesFeed)
-	Register("/habrahabr.rss", habrahabrFeed)
+	Register("/habrahabr.rss", habrFeed)
 }
 
-func geektimesFeed() (*Feed, error) {
-	return getTmFeed("Geektimes", "geektimes.ru", "feed/"+tmUserId)
-}
-
-func habrahabrFeed() (feed *Feed, err error) {
-	feed, err = getTmFeed("Хабрахабр", "habrahabr.ru", "feed/posts/"+tmUserId)
+func habrFeed() (feed *Feed, err error) {
+	feed, err = getTmFeed("Хабр", "habr.com", "feed/posts/"+tmUserId)
 	if err != nil {
 		return nil, err
 	}
