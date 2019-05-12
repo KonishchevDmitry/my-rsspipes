@@ -12,6 +12,12 @@ import (
 )
 
 var bcsExpressUrlBuilder = UrlBuilder{"https://bcs-express.ru"}
+var bcsExpressCategoryBlacklist = map[string]bool{
+	"Дивиденды":        true,
+	"Российский рынок": true,
+	"Рынок нефти":      true,
+	"Теханализ":        true,
+}
 
 func init() {
 	Register("/bcs-express.rss", bcsExpressFeed)
@@ -44,6 +50,8 @@ func bcsExpressFeed() (feed *Feed, err error) {
 }
 
 func getBcsExpressArticles(doc *goquery.Document) (items []*Item, err error) {
+	foundArticles := false
+
 	doc.Find("div.feed div.feed-item").EachWithBreak(func(i int, article *goquery.Selection) bool {
 		var item *Item
 
@@ -51,13 +59,16 @@ func getBcsExpressArticles(doc *goquery.Document) (items []*Item, err error) {
 		if err != nil {
 			return false
 		}
+		foundArticles = true
 
-		items = append(items, item)
+		if item != nil {
+			items = append(items, item)
+		}
 
 		return true
 	})
 
-	if err == nil && len(items) == 0 {
+	if err == nil && !foundArticles {
 		err = errors.New("Unable to find the articles")
 		return
 	}
@@ -76,11 +87,15 @@ func getBcsExpressArticle(article *goquery.Selection) (*Item, error) {
 	}
 	url = bcsExpressUrlBuilder.getUrl(url)
 
+	if bcsExpressCategoryBlacklist[category] {
+		return nil, nil
+	}
+
 	description, err := getBcsExpressArticleDescription(url)
 	if err != nil {
 		log.Errorf("Failed to get article description from %s: %s.", url, err)
-		description = summary
 	}
+	description = summary
 
 	return &Item{
 		Title:       fmt.Sprintf("[%s] %s", category, title),
