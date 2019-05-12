@@ -11,12 +11,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var zhukovskyNewsUrlBuilder = UrlBuilder{"http://zhukvesti.info"}
+
 func init() {
 	Register("/zhukovsky-news.rss", zhukovskyNewsFeed)
 }
 
 func zhukovskyNewsFeed() (feed *Feed, err error) {
-	doc, err := FetchHtml(getZhukovskyNewsUrl("/articles/95/"))
+	doc, err := FetchHtml(zhukovskyNewsUrlBuilder.getUrl("/articles/95/"))
 	if err != nil {
 		return
 	}
@@ -26,17 +28,9 @@ func zhukovskyNewsFeed() (feed *Feed, err error) {
 		return
 	}
 
-	feed = &Feed{Title: "Жуковские ВЕСТИ", Link: getZhukovskyNewsUrl("/"), Items: items}
+	feed = &Feed{Title: "Жуковские ВЕСТИ", Link: zhukovskyNewsUrlBuilder.getUrl("/"), Items: items}
 
 	return
-}
-
-func getZhukovskyNewsUrl(url string) string {
-	if strings.HasPrefix(url, "/") {
-		url = "http://zhukvesti.info" + url
-	}
-
-	return url
 }
 
 func getZhukovskyNewsArticles(doc *goquery.Document) (items []*Item, err error) {
@@ -56,6 +50,10 @@ func getZhukovskyNewsArticles(doc *goquery.Document) (items []*Item, err error) 
 		return true
 	})
 
+	if err == nil && len(items) == 0 {
+		err = errors.New("Unable to find the arcticles")
+	}
+
 	return
 }
 
@@ -67,7 +65,7 @@ func getZhukovskyNewsArticle(article *goquery.Selection) (item *Item, spam bool,
 		err = fmt.Errorf("Can't find URL of the following article:\n%s", getSelectionHtml(article))
 		return
 	}
-	url = getZhukovskyNewsUrl(url)
+	url = zhukovskyNewsUrlBuilder.getUrl(url)
 
 	description, spam, err := getZhukovskyNewsArticleDescription(url)
 	if err != nil {
@@ -120,39 +118,11 @@ func getZhukovskyNewsArticleDescription(url string) (description string, spam bo
 		disabledCommentsStub.Remove()
 	}
 
-	article.Find("script").Remove()
-
-	article.Find("a").Each(func(i int, link *goquery.Selection) {
-		url, exists := link.Attr("href")
-		if exists {
-			link.SetAttr("href", getZhukovskyNewsUrl(url))
-		}
-	})
-
-	article.Find("img").Each(func(i int, image *goquery.Selection) {
-		url, exists := image.Attr("src")
-		if exists {
-			image.SetAttr("src", getZhukovskyNewsUrl(url))
-		}
-	})
-
 	spam = article.Find("div, p").FilterFunction(func(i int, block *goquery.Selection) bool {
 		return strings.TrimSpace(block.Text()) == "На правах рекламы"
 	}).Size() != 0
 
-	description, err = article.Html()
-	if err != nil {
-		return
-	}
+	description, err = getDescriptionFromSelection(article, zhukovskyNewsUrlBuilder)
 
 	return
-}
-
-func getSelectionHtml(selection *goquery.Selection) string {
-	html, err := selection.Html()
-	if err != nil {
-		html = fmt.Sprintf("[Failed to render the HTML: %s]", err)
-	}
-
-	return html
 }
