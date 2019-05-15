@@ -82,7 +82,7 @@ func getBcsExpressArticle(article *goquery.Selection) (*Item, error) {
 	summary := article.Find("div.feed-item__summary").First().Text()
 	category := strings.TrimSpace(article.Find("div.rubric").First().Text())
 
-	if url == "" || title == "" || summary == "" || category == "" {
+	if url == "" || title == "" || category == "" {
 		return nil, fmt.Errorf("Can't parse the following article:\n%s", getSelectionHtml(article))
 	}
 	url = bcsExpressUrlBuilder.getUrl(url)
@@ -94,8 +94,8 @@ func getBcsExpressArticle(article *goquery.Selection) (*Item, error) {
 	description, err := getBcsExpressArticleDescription(url)
 	if err != nil {
 		log.Errorf("Failed to get article description from %s: %s.", url, err)
+		description = summary
 	}
-	description = summary
 
 	return &Item{
 		Title:       fmt.Sprintf("[%s] %s", category, title),
