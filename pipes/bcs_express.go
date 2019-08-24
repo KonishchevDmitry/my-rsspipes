@@ -91,6 +91,10 @@ func getBcsExpressArticle(article *goquery.Selection) (*Item, error) {
 		return nil, nil
 	}
 
+	if category == "Инвестидеи" && !strings.Contains(title, "Яндекс") && !strings.Contains(title, "YNDX") {
+		return nil, nil
+	}
+
 	description, err := getBcsExpressArticleDescription(url)
 	if err != nil {
 		log.Errorf("Failed to get article description from %s: %s.", url, err)
