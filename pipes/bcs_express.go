@@ -13,10 +13,14 @@ import (
 
 var bcsExpressUrlBuilder = UrlBuilder{"https://bcs-express.ru"}
 var bcsExpressCategoryBlacklist = map[string]bool{
-	"Дивиденды":        true,
-	"Российский рынок": true,
-	"Рынок нефти":      true,
-	"Теханализ":        true,
+	"Валютный рынок":         true,
+	"Дивиденды":              true,
+	"Мировые рынки":          true,
+	"Новости":                true,
+	"Российский рынок":       true,
+	"Рынок нефти":            true,
+	"Теханализ":              true,
+	"Торговые рекомендации*": true,
 }
 
 func init() {
@@ -87,11 +91,7 @@ func getBcsExpressArticle(article *goquery.Selection) (*Item, error) {
 	}
 	url = bcsExpressUrlBuilder.getUrl(url)
 
-	if bcsExpressCategoryBlacklist[category] {
-		return nil, nil
-	}
-
-	if category == "Инвестидеи" && !strings.Contains(title, "Яндекс") && !strings.Contains(title, "YNDX") {
+	if bcsExpressCategoryBlacklist[category] && !(strings.Contains(title, "Яндекс") || strings.Contains(title, "YNDX")) {
 		return nil, nil
 	}
 
