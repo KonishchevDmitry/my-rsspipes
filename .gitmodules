@@ -1,0 +1,6 @@
+[submodule "go-rss"]
+	path = go-rss
+	url = git@github.com:KonishchevDmitry/go-rss.git
+[submodule "rsspipes"]
+	path = rsspipes
+	url = git@github.com:KonishchevDmitry/rsspipes.git
