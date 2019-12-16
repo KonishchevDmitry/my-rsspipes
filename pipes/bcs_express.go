@@ -15,6 +15,7 @@ var bcsExpressUrlBuilder = UrlBuilder{"https://bcs-express.ru"}
 var bcsExpressCategoryBlacklist = map[string]bool{
 	"Валютный рынок":         true,
 	"Дивиденды":              true,
+	"Инвестидеи":             true,
 	"Мировые рынки":          true,
 	"Новости":                true,
 	"Российский рынок":       true,
