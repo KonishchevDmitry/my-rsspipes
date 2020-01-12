@@ -12,12 +12,12 @@ import (
 var log = util.MustGetLogger("pipes")
 
 type UrlBuilder struct {
-	baseUrl string
+	BaseUrl string
 }
 
 func (b *UrlBuilder) getUrl(url string) string {
 	if strings.HasPrefix(url, "/") {
-		url = b.baseUrl + url
+		url = b.BaseUrl + url
 	}
 	return url
 }
